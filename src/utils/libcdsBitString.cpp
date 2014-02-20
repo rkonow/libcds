@@ -36,6 +36,7 @@ namespace cds_utils
 	void BitString::initData(const size_t len) {
 		length = len;
 		uintLength = length/W+1;
+		// cout << "uintlentgh = " << length/W+1 << endl;
 		data = new uint[uintLength];
 		for(uint i=0;i<uintLength;i++)
 			data[i] = 0;

@@ -23,6 +23,14 @@
 
 #include <WaveletTreeNoptrs.h>
 
+#include <queue>
+#include <algorithm>
+#include <vector>
+#include <utility>
+#include <tuple>
+
+using namespace std;
+
 namespace cds_static
 {
 	WaveletTreeNoptrs::WaveletTreeNoptrs(const Array & a, BitSequenceBuilder * bmb, Mapper * am) : Sequence(0) {
@@ -330,6 +338,54 @@ namespace cds_static
 		}
 
 		return am->unmap(ret);
+	}
+
+	void WaveletTreeNoptrs::TopK(size_t ini, size_t fin, int k, vector<uint> &result) {
+
+		//tuples have: length, ini, fin, level
+		priority_queue<tuple<size_t, size_t, size_t, size_t, uint> > q;
+		q.push(make_tuple(fin-ini+1, ini, fin, 0, 0));
+
+		while (!q.empty()) {
+			auto t = q.top();
+			q.pop();
+			size_t len = get<0>(t);
+			size_t left = get<1>(t);
+			size_t right = get<2>(t);
+			uint level = get<3>(t);
+			uint symb = get<4>(t);
+
+			if (level == height) {
+				if (symb == 0) continue;
+				result.push_back(am->unmap(symb));
+				if (result.size() == (uint)k) return;
+				continue;
+			}
+
+			size_t before = 0;
+			if (OCC[symb] > 0) 
+				before = bitstring[level]->rank1(OCC[symb] - 1);
+
+			size_t rank_before_left = 0;
+			if (left > 0)
+				rank_before_left = bitstring[level]->rank1(left-1);
+
+			size_t total_until_right = bitstring[level]->rank1(right);
+			
+			size_t num_right = total_until_right - rank_before_left;
+			if (num_right > 0) { // right
+				uint symb2 = symb + (1ul << (height - level - 1));
+				size_t a = OCC[symb2]  + rank_before_left - before;
+				size_t b = OCC[symb2] + total_until_right - before - 1;
+				q.push(make_tuple(b - a + 1, a, b, level+1, symb2));
+			}
+			
+			if (len != num_right) { // left
+				size_t a = left - rank_before_left + before;
+				size_t b = right - total_until_right + before;
+				q.push(make_tuple(b - a + 1, a, b, level+1, symb));
+			}
+		}
 	}
 
 	size_t WaveletTreeNoptrs::rank(uint symbol, size_t pos) const

@@ -88,6 +88,8 @@ namespace cds_static
 			virtual void save(ofstream & fp) const;
 			static WaveletTreeNoptrs * load(ifstream & fp);
 
+			void TopK(size_t ini, size_t fin, int k, vector<uint> &result);
+
 		protected:
 			WaveletTreeNoptrs();
 
